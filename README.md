@@ -46,9 +46,9 @@ This creates a project-local `.venv` directory.
 
 ### 4. Activate the Virtual Environment
 
-```
 .\.venv\Scripts\Activate.ps1
-```
+----
+cmd /k ".venv\Scripts\activate.bat"
 
 ### 5. Install Project Dependencies
 
@@ -72,4 +72,7 @@ Keep `pyproject.toml` and `uv.lock` in version control so other developers can r
 
 ### 7. Run Streamlit
 uv run streamlit run app.py
+
+### 8. Run Backend
+uv run backend/main.py
 
