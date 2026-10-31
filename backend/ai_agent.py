@@ -1,10 +1,11 @@
 import os
 from dotenv import load_dotenv
 from backend.tools import query_gemini,call_emergency
-from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
 from langchain.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
+import googlemaps
 load_dotenv()
 
 @tool
@@ -44,16 +45,47 @@ def find_nearby_therapists_by_location(location: str) -> str:
         "- MindCare Counseling Center - +1 (555) 222-3333"
     )
 
+@tool
+def find_nearby_therapists_by_location_live(location: str) -> str:
+    """
+    Get the user's location.
+    """
+    google_map_api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    gmaps = googlemaps.Client(key=google_map_api_key)
+    geocode_result = gmaps.geocode(location)
+    lat_lng = geocode_result[0]['geometry']['location']
+    lat, lng = lat_lng['lat'], lat_lng['lng']
+    places_result = gmaps.places_nearby(
+            location=(lat, lng),
+            radius=5000,
+            keyword="Psychotherapist"
+        )
+    output = [f"Therapists near {location}:"]
+    top_results = places_result['results'][:5]
+    for place in top_results:
+            name = place.get("name", "Unknown")
+            address = place.get("vicinity", "Address not available")
+            details = gmaps.place(place_id=place["place_id"], fields=["formatted_phone_number"])
+            phone = details.get("result", {}).get("formatted_phone_number", "Phone not available")
+
+            output.append(f"- {name} | {address} | {phone}")
+    return "\n".join(output)
 
 
 # Initialize Gemini and connect backend tools
-api_key = os.getenv("GEMINI_API_KEY")
+api_key = os.getenv("GROQ_API_KEY")
 
 tools = [ask_mental_health_specialist, emergency_call_tool, find_nearby_therapists_by_location,]
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3.5-flash-lite",
-    # temperature=0.2,
-    google_api_key=api_key,
+# llm = ChatGoogleGenerativeAI(
+#     model="gemini-3.5-flash-lite",
+#     # temperature=0.2,
+#     google_api_key=api_key,
+# )
+
+llm = ChatGroq(
+    model="openai/gpt-oss-120b",
+    temperature=0.2,
+    api_key=api_key,
 )
 
 SYSTEM_PROMPT = """
